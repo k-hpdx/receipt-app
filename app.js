@@ -18,6 +18,17 @@ const els = {
   calcInclusive: document.getElementById('calcInclusive'),
   calcTaxRateLabel: document.getElementById('calcTaxRateLabel'),
 
+  // Receipt number
+  prevNumber: document.getElementById('prevNumber'),
+  nextNumberHint: document.getElementById('nextNumberHint'),
+
+  // History
+  historyBody: document.getElementById('historyBody'),
+  historyEmpty: document.getElementById('historyEmpty'),
+  historyTable: document.getElementById('historyTable'),
+  historyCount: document.getElementById('historyCount'),
+  btnExportCsv: document.getElementById('btnExportCsv'),
+
   // Preview
   prevRecipient: document.getElementById('prevRecipient'),
   prevDate: document.getElementById('prevDate'),
@@ -51,6 +62,9 @@ els.tabs.forEach(tab => {
     els.tabContents.forEach(c => c.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+    if (tab.dataset.tab === 'history') {
+      renderHistory();
+    }
   });
 });
 
@@ -123,6 +137,9 @@ function updateDisplay() {
   els.prevTaxRate.textContent = rateShort;
   els.prevExclusive.textContent = `${formatNumber(exclusive)} 円`;
   els.prevTax.textContent = `${formatNumber(tax)} 円`;
+
+  // Preview - 次に発行される領収書番号
+  refreshNextNumber();
 }
 
 // === Settings: Load ===
@@ -166,6 +183,150 @@ function updateIssuerPreview(settings) {
   }
 }
 
+// === Receipt Number ===
+// 番号は「年度＋連番」形式（例：2026-0001）。年ごとに連番を管理し、年が変わると0001にリセット。
+// 連番カウンターは発行のたびに増加し、履歴を削除しても減らない（番号の重複を防ぐため）。
+function getCounters() {
+  return JSON.parse(localStorage.getItem('receiptCounters') || '{}');
+}
+
+function getReceiptYear() {
+  const val = els.issueDate.value;
+  const y = val ? val.split('-')[0] : String(new Date().getFullYear());
+  return y;
+}
+
+function formatReceiptNumber(year, seq) {
+  return `${year}-${String(seq).padStart(4, '0')}`;
+}
+
+// 次に発行される番号を、カウンターを進めずに確認する
+function peekNextNumber() {
+  const year = getReceiptYear();
+  const counters = getCounters();
+  const seq = (counters[year] || 0) + 1;
+  return formatReceiptNumber(year, seq);
+}
+
+// 番号を確定し、カウンターを進めて保存する
+function commitNextNumber() {
+  const year = getReceiptYear();
+  const counters = getCounters();
+  const seq = (counters[year] || 0) + 1;
+  counters[year] = seq;
+  localStorage.setItem('receiptCounters', JSON.stringify(counters));
+  return formatReceiptNumber(year, seq);
+}
+
+function refreshNextNumber() {
+  const next = peekNextNumber();
+  els.nextNumberHint.textContent = next;
+  els.prevNumber.textContent = next;
+}
+
+// === History ===
+function getHistory() {
+  return JSON.parse(localStorage.getItem('receiptHistory') || '[]');
+}
+
+function addHistory(record) {
+  const history = getHistory();
+  history.push(record);
+  localStorage.setItem('receiptHistory', JSON.stringify(history));
+}
+
+function deleteHistory(number) {
+  const history = getHistory().filter(r => r.number !== number);
+  localStorage.setItem('receiptHistory', JSON.stringify(history));
+  renderHistory();
+}
+
+function renderHistory() {
+  const history = getHistory().slice().reverse(); // 新しい順
+  els.historyBody.innerHTML = '';
+
+  if (history.length === 0) {
+    els.historyTable.style.display = 'none';
+    els.historyEmpty.style.display = 'block';
+    els.historyCount.textContent = '';
+    return;
+  }
+
+  els.historyTable.style.display = '';
+  els.historyEmpty.style.display = 'none';
+  els.historyCount.textContent = `全 ${history.length} 件`;
+
+  history.forEach(r => {
+    const tr = document.createElement('tr');
+
+    const tdNum = document.createElement('td');
+    tdNum.className = 'col-number';
+    tdNum.textContent = r.number;
+
+    const tdDate = document.createElement('td');
+    tdDate.textContent = r.date;
+
+    const tdName = document.createElement('td');
+    tdName.textContent = `${r.recipient} 様`;
+
+    const tdDesc = document.createElement('td');
+    tdDesc.textContent = r.description || '—';
+
+    const tdAmount = document.createElement('td');
+    tdAmount.className = 'num';
+    tdAmount.textContent = `${formatNumber(r.amount)} 円`;
+
+    const tdAction = document.createElement('td');
+    const btn = document.createElement('button');
+    btn.className = 'btn-delete';
+    btn.textContent = '削除';
+    btn.addEventListener('click', () => {
+      if (confirm(`領収書番号 ${r.number}（${r.recipient} 様）を履歴から削除しますか？`)) {
+        deleteHistory(r.number);
+      }
+    });
+    tdAction.appendChild(btn);
+
+    tr.append(tdNum, tdDate, tdName, tdDesc, tdAmount, tdAction);
+    els.historyBody.appendChild(tr);
+  });
+}
+
+// === CSV Export ===
+function exportCsv() {
+  const history = getHistory();
+  if (history.length === 0) {
+    alert('発行履歴がありません。');
+    return;
+  }
+
+  const header = ['領収書番号', '発行日', '宛名', '但し書き', '税抜金額', '消費税額', '税込金額'];
+  const rows = history.map(r => [
+    r.number,
+    r.date,
+    r.recipient,
+    r.description || '',
+    r.exclusive,
+    r.tax,
+    r.amount,
+  ]);
+
+  const escape = v => {
+    const s = String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csv = [header, ...rows].map(row => row.map(escape).join(',')).join('\r\n');
+
+  // Excelでの文字化け防止にBOMを付与
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `発行先一覧_${getReceiptYear()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // === PDF Generation ===
 function generatePDF() {
   // Validation
@@ -188,9 +349,15 @@ function generatePDF() {
     return;
   }
 
+  // 領収書番号を確定（カウンターを進める）し、プレビューに反映
+  const number = commitNextNumber();
+  els.prevNumber.textContent = number;
+
   const receiptEl = els.receiptPreview;
   const [y, m, d] = els.issueDate.value.split('-');
-  const filename = `領収書_${els.recipientName.value.trim()}_${y}${m}${d}.pdf`;
+  const recipient = els.recipientName.value.trim();
+  const { exclusive, tax, inclusive } = calculate();
+  const filename = `領収書_${number}_${recipient}.pdf`;
 
   const opt = {
     margin: 10,
@@ -201,6 +368,20 @@ function generatePDF() {
   };
 
   html2pdf().set(opt).from(receiptEl).save();
+
+  // 発行履歴に記録
+  addHistory({
+    number,
+    date: `${y}-${m}-${d}`,
+    recipient,
+    description: els.description.value.trim(),
+    exclusive,
+    tax,
+    amount: inclusive,
+  });
+
+  // 次の番号表示を更新
+  refreshNextNumber();
 }
 
 // === Event Listeners ===
@@ -212,8 +393,10 @@ els.issueDate.addEventListener('change', updateDisplay);
 els.description.addEventListener('input', updateDisplay);
 els.btnSaveSettings.addEventListener('click', saveSettings);
 els.btnGenerate.addEventListener('click', generatePDF);
+els.btnExportCsv.addEventListener('click', exportCsv);
 
 // === Initialize ===
 setDefaultDate();
 loadSettings();
 updateDisplay();
+refreshNextNumber();

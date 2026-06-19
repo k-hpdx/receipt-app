@@ -225,6 +225,126 @@ header h1 {
   color: #28a745;
 }
 
+.btn-secondary {
+  padding: 8px 18px;
+  background: #fff;
+  color: #4a90d9;
+  border: 1px solid #4a90d9;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-secondary:hover {
+  background: #eef5fc;
+}
+
+.next-number-hint {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+#nextNumberHint {
+  font-weight: bold;
+  color: #555;
+}
+
+/* === 発行履歴 === */
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.history-header h2 {
+  font-size: 1.1rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.history-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.history-count {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.history-table-wrap {
+  overflow-x: auto;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.history-table th,
+.history-table td {
+  border-bottom: 1px solid #eee;
+  padding: 10px 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.history-table th {
+  background: #f9f9f9;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.history-table th.num,
+.history-table td.num {
+  text-align: right;
+}
+
+.history-table tbody tr:hover {
+  background: #fafafa;
+}
+
+.history-table .col-number {
+  font-weight: bold;
+  color: #357abd;
+}
+
+.btn-delete {
+  padding: 4px 10px;
+  background: #fff;
+  color: #d9534f;
+  border: 1px solid #e0a9a7;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.btn-delete:hover {
+  background: #fdf0f0;
+}
+
+.history-empty {
+  padding: 32px 0;
+  text-align: center;
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+/* === 領収書番号 === */
+.receipt-number {
+  text-align: right;
+  font-size: 0.85rem;
+  color: #444;
+  margin-bottom: 4px;
+}
+
 /* === Settings === */
 .settings-section {
   max-width: 500px;

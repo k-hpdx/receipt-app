@@ -13,6 +13,7 @@
       <h1>領収書発行</h1>
       <nav class="tabs">
         <button class="tab active" data-tab="receipt">領収書作成</button>
+        <button class="tab" data-tab="history">発行履歴</button>
         <button class="tab" data-tab="settings">設定</button>
       </nav>
     </header>
@@ -82,6 +83,7 @@
 
           <div class="form-actions">
             <button id="btnGenerate" class="btn-primary">PDF発行</button>
+            <span class="next-number-hint">次の番号：<span id="nextNumberHint">—</span></span>
           </div>
         </section>
 
@@ -89,6 +91,7 @@
           <h2>プレビュー</h2>
           <div id="receiptPreview" class="receipt-preview">
             <div class="receipt">
+              <div class="receipt-number">No. <span id="prevNumber">—</span></div>
               <h3 class="receipt-title">領 収 書</h3>
 
               <div class="receipt-header">
@@ -135,6 +138,35 @@
           </div>
         </section>
       </div>
+    </main>
+
+    <!-- 発行履歴タブ -->
+    <main id="tab-history" class="tab-content">
+      <section class="form-section">
+        <div class="history-header">
+          <h2>発行履歴・発行先一覧</h2>
+          <div class="history-actions">
+            <span id="historyCount" class="history-count"></span>
+            <button id="btnExportCsv" class="btn-secondary">CSV出力</button>
+          </div>
+        </div>
+        <div class="history-table-wrap">
+          <table class="history-table" id="historyTable">
+            <thead>
+              <tr>
+                <th>番号</th>
+                <th>発行日</th>
+                <th>宛名</th>
+                <th>但し書き</th>
+                <th class="num">税込金額</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+          <p id="historyEmpty" class="history-empty">まだ発行履歴がありません。</p>
+        </div>
+      </section>
     </main>
 
     <!-- 設定タブ -->
