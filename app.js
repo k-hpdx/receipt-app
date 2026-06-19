@@ -367,9 +367,14 @@ function generatePDF() {
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
   };
 
-  html2pdf().set(opt).from(receiptEl).save();
+  // PDF生成（html2pdfは非同期）。生成中はプレビューの番号を確定値のまま保持し、
+  // PDFのキャプチャが終わってから「次の番号」へ表示を更新する。
+  // ここで先にrefreshNextNumber()を呼ぶと、キャプチャ前に番号が次の値へ戻ってしまう。
+  html2pdf().set(opt).from(receiptEl).save()
+    .then(refreshNextNumber)
+    .catch(refreshNextNumber);
 
-  // 発行履歴に記録
+  // 発行履歴に記録（DOMには触れないのでキャプチャに影響しない）
   addHistory({
     number,
     date: `${y}-${m}-${d}`,
@@ -379,9 +384,6 @@ function generatePDF() {
     tax,
     amount: inclusive,
   });
-
-  // 次の番号表示を更新
-  refreshNextNumber();
 }
 
 // === Event Listeners ===
